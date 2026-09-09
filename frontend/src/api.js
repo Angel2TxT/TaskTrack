@@ -21,6 +21,8 @@ async function request(path, options = {}) {
             if (field === "email") return "Introduce un correo válido";
             if (field === "password") return "La contraseña no es válida";
             if (field === "name") return "Introduce un nombre de al menos 2 caracteres";
+            if (field === "title") return "El título de la tarea es obligatorio";
+            if (field === "description") return "La descripción es demasiado larga";
             return item.msg;
           })
           .join(". ")
@@ -55,4 +57,9 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   me: () => request("/api/auth/me"),
+  createTask: (payload) =>
+    request("/api/tasks", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
