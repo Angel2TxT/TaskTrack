@@ -64,7 +64,5 @@ export const api = {
     }),
   listTasks: () => request("/api/tasks"),
   completeTask: (taskId) =>
-    request(`/api/tasks/${taskId}/complete`, {
-      method: "PATCH",
-    }),
+    request(`/api/tasks/${taskId}/complete`, { method: "PATCH" }),
 };
