@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -37,3 +37,19 @@ def list_pending_tasks(
         .where(Task.user_id == user.id, Task.completed.is_(False))
         .order_by(Task.created_at.desc())
     ).all()
+
+
+@router.patch("/{task_id}/complete", response_model=TaskPublic)
+def complete_task(
+    task_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task = db.get(Task, task_id)
+    if task is None or task.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+
+    task.completed = True
+    db.commit()
+    db.refresh(task)
+    return task

@@ -63,4 +63,8 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   listTasks: () => request("/api/tasks"),
+  completeTask: (taskId) =>
+    request(`/api/tasks/${taskId}/complete`, {
+      method: "PATCH",
+    }),
 };
