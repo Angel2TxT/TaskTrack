@@ -1,0 +1,58 @@
+const TOKEN_KEY = "tasktrack_token";
+
+async function request(path, options = {}) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(path, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = Array.isArray(data.detail)
+      ? data.detail
+          .map((item) => {
+            const field = item.loc?.[item.loc.length - 1];
+            if (field === "email") return "Introduce un correo válido";
+            if (field === "password") return "La contraseña no es válida";
+            if (field === "name") return "Introduce un nombre de al menos 2 caracteres";
+            return item.msg;
+          })
+          .join(". ")
+      : data.detail || "No se pudo completar la solicitud";
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+export function saveSession(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export const api = {
+  register: (payload) =>
+    request("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  login: (payload) =>
+    request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  me: () => request("/api/auth/me"),
+};
