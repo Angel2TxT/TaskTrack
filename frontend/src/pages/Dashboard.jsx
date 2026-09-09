@@ -1,14 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext.jsx";
+
+function formatCreatedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("es-MX", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
+  async function loadTasks() {
+    const pending = await api.listTasks();
+    setTasks(pending);
+  }
+
+  useEffect(() => {
+    loadTasks()
+      .catch((err) => setError(err.message))
+      .finally(() => setLoadingTasks(false));
+  }, []);
 
   async function handleCreate(event) {
     event.preventDefault();
@@ -20,6 +44,7 @@ export default function Dashboard() {
       setTitle("");
       setDescription("");
       setSuccess("Tarea creada. Ya forma parte de tu día.");
+      await loadTasks();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,11 +65,11 @@ export default function Dashboard() {
       </header>
 
       <section className="dash-hero">
-        <p className="eyebrow">Sesión activa</p>
+        <p className="eyebrow">Panel de pendientes</p>
         <h1>Hola, {user.name.split(" ")[0].trim()}.</h1>
         <p>
-          Crea una tarea con título y descripción para organizar el trabajo de
-          hoy.
+          Aquí ves tus tareas pendientes, de la más reciente a la más antigua,
+          para organizar el trabajo del día.
         </p>
       </section>
 
@@ -77,6 +102,27 @@ export default function Dashboard() {
             {submitting ? "Guardando…" : "Crear tarea"}
           </button>
         </form>
+
+        <section className="task-list">
+          <h2>Pendientes</h2>
+          {loadingTasks && <p className="empty">Cargando tus tareas…</p>}
+          {!loadingTasks && tasks.length === 0 && (
+            <p className="empty">Aún no tienes tareas pendientes.</p>
+          )}
+          <ul>
+            {tasks.map((task) => (
+              <li key={task.id}>
+                <div>
+                  <strong>{task.title}</strong>
+                  {task.description && <p>{task.description}</p>}
+                </div>
+                <time dateTime={task.created_at}>
+                  {formatCreatedAt(task.created_at)}
+                </time>
+              </li>
+            ))}
+          </ul>
+        </section>
       </section>
     </div>
   );
