@@ -62,4 +62,5 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  listTasks: () => request("/api/tasks"),
 };
