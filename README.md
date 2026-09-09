@@ -2,6 +2,8 @@
 
 Gestor de tareas con **backend** (FastAPI + SQLite) y **frontend** (React + Vite), desarrollado con Extreme Programming.
 
+Versión actual: **1.0.0**. El historial está en [CHANGELOG.md](CHANGELOG.md) y en los tags de Git (`v0.1.0` … `v1.0.0`).
+
 ## Historias de usuario
 
 - **HU01** — Iniciar sesión y guardar la sesión en el dispositivo.

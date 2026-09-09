@@ -22,6 +22,8 @@ async function request(path, options = {}) {
             if (field === "password") return "La contraseña no es válida";
             if (field === "name") return "Introduce un nombre de al menos 2 caracteres";
             if (field === "title") return "El título de la tarea es obligatorio";
+            if (field === "estimated_minutes") return "Elige un tiempo estimado válido";
+            if (field === "elapsed_seconds") return "El tiempo registrado no es válido";
             if (field === "description") return "La descripción es demasiado larga";
             return item.msg;
           })
@@ -63,6 +65,11 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   listTasks: () => request("/api/tasks"),
+  saveTaskTime: (taskId, elapsedSeconds) =>
+    request(`/api/tasks/${taskId}/time`, {
+      method: "PATCH",
+      body: JSON.stringify({ elapsed_seconds: elapsedSeconds }),
+    }),
   completeTask: (taskId) =>
     request(`/api/tasks/${taskId}/complete`, { method: "PATCH" }),
 };

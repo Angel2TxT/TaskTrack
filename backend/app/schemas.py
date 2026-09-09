@@ -30,12 +30,19 @@ class AuthResponse(BaseModel):
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=150)
     description: str = Field(default="", max_length=1000)
+    estimated_minutes: int = Field(ge=1, le=24 * 60)
+
+
+class TaskTimeUpdate(BaseModel):
+    elapsed_seconds: int = Field(ge=0, le=7 * 24 * 3600)
 
 
 class TaskPublic(BaseModel):
     id: int
     title: str
     description: str
+    estimated_minutes: int
+    elapsed_seconds: int
     completed: bool
     created_at: datetime
 

@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import Base, engine
+from app.database import Base, engine, ensure_schema
 from app.routers import auth, tasks
 
 Base.metadata.create_all(bind=engine)
+ensure_schema()
 
 app = FastAPI(title="TaskTrack API", version="1.0.0")
 
