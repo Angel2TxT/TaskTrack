@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [completingId, setCompletingId] = useState(null);
 
   async function loadTasks() {
     const pending = await api.listTasks();
@@ -49,6 +50,20 @@ export default function Dashboard() {
       setError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleComplete(taskId) {
+    setError("");
+    setCompletingId(taskId);
+    try {
+      await api.completeTask(taskId);
+      setTasks((current) => current.filter((task) => task.id !== taskId));
+      setSuccess("Tarea completada. Ya no aparece en pendientes.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCompletingId(null);
     }
   }
 
@@ -116,9 +131,18 @@ export default function Dashboard() {
                   <strong>{task.title}</strong>
                   {task.description && <p>{task.description}</p>}
                 </div>
-                <time dateTime={task.created_at}>
-                  {formatCreatedAt(task.created_at)}
-                </time>
+                <div className="task-actions">
+                  <time dateTime={task.created_at}>
+                    {formatCreatedAt(task.created_at)}
+                  </time>
+                  <button
+                    type="button"
+                    onClick={() => handleComplete(task.id)}
+                    disabled={completingId === task.id}
+                  >
+                    {completingId === task.id ? "Listo…" : "Completar"}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

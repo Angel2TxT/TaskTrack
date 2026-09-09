@@ -462,6 +462,27 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.task-actions {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: 10px;
+}
+
+.task-actions button {
+  border: 0;
+  background: var(--ink);
+  color: var(--cream);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.task-actions button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 .dash-meta {
   margin-top: 28px;
   display: grid;
