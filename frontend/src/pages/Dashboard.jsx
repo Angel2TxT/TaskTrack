@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [description, setDescription] = useState("");
   const [estimate, setEstimate] = useState(30);
   const [tasks, setTasks] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [timer, setTimer] = useState(null);
   const [now, setNow] = useState(Date.now());
@@ -36,8 +38,10 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [completingId, setCompletingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const restoredRef = useRef(false);
 
+  const visibleTasks = showCompleted ? completedTasks : tasks;
   const selectedTask = tasks.find((task) => task.id === selectedId) || null;
   const elapsed = currentElapsed(timer, now);
   const estimatedSeconds = (selectedTask?.estimated_minutes || 0) * 60;
@@ -52,10 +56,27 @@ export default function Dashboard() {
     return selectedTask.title;
   }, [selectedTask]);
 
-  async function loadTasks() {
-    const pending = await api.listTasks();
-    setTasks(pending);
-    return pending;
+  async function loadTasks(completed = false) {
+    const list = await api.listTasks(completed);
+    if (completed) {
+      setCompletedTasks(list);
+    } else {
+      setTasks(list);
+    }
+    return list;
+  }
+
+  async function switchList(completed) {
+    setError("");
+    setShowCompleted(completed);
+    setLoadingTasks(true);
+    try {
+      await loadTasks(completed);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingTasks(false);
+    }
   }
 
   useEffect(() => {
@@ -152,22 +173,48 @@ export default function Dashboard() {
     }
   }
 
-  async function handleCreate(event) {
+  function resetForm() {
+    setTitle("");
+    setDescription("");
+    setEstimate(30);
+    setEditingId(null);
+  }
+
+  function startEdit(task) {
+    setError("");
+    setSuccess("");
+    setEditingId(task.id);
+    setTitle(task.title);
+    setDescription(task.description || "");
+    setEstimate(task.estimated_minutes || 30);
+    selectTask(task);
+  }
+
+  async function handleSave(event) {
     event.preventDefault();
     setError("");
     setSuccess("");
     setSubmitting(true);
     try {
-      await api.createTask({
+      const payload = {
         title,
         description,
         estimated_minutes: Number(estimate),
-      });
-      setTitle("");
-      setDescription("");
-      setEstimate(30);
-      setSuccess("Tarea creada. Ya forma parte de tu día.");
-      await loadTasks();
+      };
+      if (editingId) {
+        const updated = await api.updateTask(editingId, payload);
+        setTasks((current) =>
+          current.map((task) => (task.id === updated.id ? updated : task)),
+        );
+        resetForm();
+        setSuccess("Tarea actualizada.");
+      } else {
+        await api.createTask(payload);
+        resetForm();
+        setShowCompleted(false);
+        setSuccess("Tarea creada. Ya forma parte de tu día.");
+        await loadTasks(false);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -253,8 +300,8 @@ export default function Dashboard() {
       </section>
 
       <section className="dash-board">
-        <form className="task-form" onSubmit={handleCreate}>
-          <h2>Nueva tarea</h2>
+        <form className="task-form" onSubmit={handleSave}>
+          <h2>{editingId ? "Editar tarea" : "Nueva tarea"}</h2>
           <label>
             Título
             <input
@@ -303,48 +350,119 @@ export default function Dashboard() {
           </fieldset>
           {error && <p className="form-error">{error}</p>}
           {success && <p className="form-success">{success}</p>}
-          <button className="submit" type="submit" disabled={submitting}>
-            {submitting ? "Guardando…" : "Crear tarea"}
-          </button>
+          <div className="form-actions">
+            {editingId && (
+              <button
+                type="button"
+                className="submit-secondary"
+                onClick={resetForm}
+              >
+                Cancelar
+              </button>
+            )}
+            <button className="submit" type="submit" disabled={submitting}>
+              {submitting
+                ? "Guardando…"
+                : editingId
+                  ? "Guardar cambios"
+                  : "Crear tarea"}
+            </button>
+          </div>
         </form>
 
         <section className="task-list">
-          <h2>Pendientes</h2>
-          {loadingTasks && <p className="empty">Cargando tus tareas…</p>}
-          {!loadingTasks && tasks.length === 0 && (
-            <p className="empty">Aún no tienes tareas pendientes.</p>
+          <div className="task-list-head">
+            <h2>{showCompleted ? "Completadas" : "Pendientes"}</h2>
+            <div className="task-list-tabs" role="tablist" aria-label="Filtrar tareas">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!showCompleted}
+                className={!showCompleted ? "is-active" : ""}
+                onClick={() => switchList(false)}
+              >
+                Pendientes
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={showCompleted}
+                className={showCompleted ? "is-active" : ""}
+                onClick={() => switchList(true)}
+              >
+                Completadas
+              </button>
+            </div>
+          </div>
+          {loadingTasks && visibleTasks.length === 0 && (
+            <p className="empty">Cargando tus tareas…</p>
+          )}
+          {!loadingTasks && visibleTasks.length === 0 && (
+            <p className="empty">
+              {showCompleted
+                ? "Aún no has completado ninguna tarea."
+                : "Aún no tienes tareas pendientes."}
+            </p>
           )}
           <ul>
-            {tasks.map((task) => (
+            {visibleTasks.map((task) => (
               <li
                 key={task.id}
-                className={selectedId === task.id ? "is-selected" : ""}
+                className={
+                  !showCompleted && selectedId === task.id ? "is-selected" : ""
+                }
               >
-                <button
-                  type="button"
-                  className="task-select"
-                  onClick={() => selectTask(task)}
-                >
-                  <strong>{task.title}</strong>
-                  {task.description && <p>{task.description}</p>}
-                  <span className="task-estimate">
-                    Estimado {formatEstimate(task.estimated_minutes)} · Hecho{" "}
-                    {formatDuration(
-                      selectedId === task.id ? elapsed : task.elapsed_seconds || 0,
-                    )}
-                  </span>
-                </button>
+                {showCompleted ? (
+                  <div className="task-select">
+                    <strong>{task.title}</strong>
+                    {task.description && <p>{task.description}</p>}
+                    <span className="task-estimate">
+                      Estimado {formatEstimate(task.estimated_minutes)} · Hecho{" "}
+                      {formatDuration(task.elapsed_seconds || 0)}
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="task-select"
+                    onClick={() => selectTask(task)}
+                  >
+                    <strong>{task.title}</strong>
+                    {task.description && <p>{task.description}</p>}
+                    <span className="task-estimate">
+                      Estimado {formatEstimate(task.estimated_minutes)} · Hecho{" "}
+                      {formatDuration(
+                        selectedId === task.id
+                          ? elapsed
+                          : task.elapsed_seconds || 0,
+                      )}
+                    </span>
+                  </button>
+                )}
                 <div className="task-actions">
                   <time dateTime={task.created_at}>
                     {formatCreatedAt(task.created_at)}
                   </time>
-                  <button
-                    type="button"
-                    onClick={() => handleComplete(task.id)}
-                    disabled={completingId === task.id}
-                  >
-                    {completingId === task.id ? "Listo…" : "Completar"}
-                  </button>
+                  {showCompleted ? (
+                    <span className="task-done">Hecha</span>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="task-edit"
+                        onClick={() => startEdit(task)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleComplete(task.id)}
+                        disabled={completingId === task.id}
+                      >
+                        {completingId === task.id ? "Listo…" : "Completar"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}

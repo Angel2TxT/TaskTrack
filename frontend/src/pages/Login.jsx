@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
 
-const tasks = [
-  { title: "Revisar el diseño del tablero", tag: "Hoy", done: true },
-  { title: "Enviar informe semanal", tag: "14:00", done: false },
-  { title: "Standup con el equipo", tag: "Mañana", done: false },
-];
-
 export default function Login() {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState("login");
@@ -52,15 +46,6 @@ export default function Login() {
             Un espacio calmo para tus tareas, pensado para que avances con
             claridad y dejes de saltar entre mil pestañas.
           </p>
-          <ul className="task-stack">
-            {tasks.map((task) => (
-              <li key={task.title} className={task.done ? "is-done" : ""}>
-                <span className="check">{task.done ? "✓" : ""}</span>
-                <span className="task-title">{task.title}</span>
-                <span className="task-tag">{task.tag}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 

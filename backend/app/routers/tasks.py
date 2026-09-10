@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Task, User
-from app.schemas import TaskCreate, TaskPublic, TaskTimeUpdate
+from app.schemas import TaskCreate, TaskPublic, TaskTimeUpdate, TaskUpdate
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -37,15 +37,32 @@ def create_task(
 
 
 @router.get("", response_model=list[TaskPublic])
-def list_pending_tasks(
+def list_tasks(
+    completed: bool = False,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return db.scalars(
         select(Task)
-        .where(Task.user_id == user.id, Task.completed.is_(False))
+        .where(Task.user_id == user.id, Task.completed.is_(completed))
         .order_by(Task.created_at.desc())
     ).all()
+
+
+@router.patch("/{task_id}/details", response_model=TaskPublic)
+def update_task(
+    task_id: int,
+    body: TaskUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task = get_owned_task(task_id, user, db)
+    task.title = body.title.strip()
+    task.description = body.description.strip()
+    task.estimated_minutes = body.estimated_minutes
+    db.commit()
+    db.refresh(task)
+    return task
 
 
 @router.patch("/{task_id}/time", response_model=TaskPublic)

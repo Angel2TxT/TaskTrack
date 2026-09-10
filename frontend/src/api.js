@@ -64,11 +64,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  listTasks: () => request("/api/tasks"),
+  listTasks: (completed = false) =>
+    request(`/api/tasks?completed=${completed ? "true" : "false"}`),
   saveTaskTime: (taskId, elapsedSeconds) =>
     request(`/api/tasks/${taskId}/time`, {
       method: "PATCH",
       body: JSON.stringify({ elapsed_seconds: elapsedSeconds }),
+    }),
+  updateTask: (taskId, payload) =>
+    request(`/api/tasks/${taskId}/details`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
     }),
   completeTask: (taskId) =>
     request(`/api/tasks/${taskId}/complete`, { method: "PATCH" }),
